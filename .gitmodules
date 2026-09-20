@@ -1,0 +1,4 @@
+[submodule "src/quad-sdk"]
+	path = src/quad-sdk
+	url = https://github.com/robomechanics/quad-sdk.git
+	branch = devel_ros2
