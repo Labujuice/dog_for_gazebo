@@ -1,0 +1,25 @@
+# PS4 DualShock 4 按鍵映射 for Go2 Quadruped
+teleop_twist_joy_node:
+  ros__parameters:
+    # 軸映射 (axes)
+    axis_linear:
+      x: 1  # 左搖桿 Y 軸 → 前進/後退
+      y: 0  # 左搖桿 X 軸 → 左/右平移
+    axis_angular:
+      yaw: 3  # 右搖桿 X 軸 → 轉彎
+
+    # 速度上限
+    scale_linear:
+      x: 0.6  # 最大前進速度 0.6 m/s
+      y: 0.4  # 最大側移速度 0.4 m/s
+    scale_angular:
+      yaw: 1.0  # 最大轉彎速度 1.0 rad/s
+
+    # 安全按鍵：L1 = 使能鍵（必須按住才能移動）
+    enable_button: 4   # L1
+    enable_turbo_button: 5  # R1 (turbo 模式)
+    scale_linear_turbo:
+      x: 1.0
+      y: 0.6
+    scale_angular_turbo:
+      yaw: 1.5
