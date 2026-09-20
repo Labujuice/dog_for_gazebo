@@ -1,0 +1,21 @@
+version: '3.8'
+services:
+  go2_control:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: go2_quadruped
+    network_mode: host
+    ipc: host
+    privileged: true  # 需要存取 /dev/input (手把)
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      - QT_X11_NO_MITSHM=1
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ./src:/ros2_ws/src
+      - /dev/input:/dev/input  # PS4 手把裝置目錄 (動態支援 js0 等熱插拔)
+    stdin_open: true
+    tty: true
