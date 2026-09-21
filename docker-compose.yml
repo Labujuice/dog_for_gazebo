@@ -16,6 +16,9 @@ services:
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - ./src:/ros2_ws/src
+      - ./build:/ros2_ws/build
+      - ./install:/ros2_ws/install
+      - ./log:/ros2_ws/log
       - /dev/input:/dev/input  # PS4 手把裝置目錄 (動態支援 js0 等熱插拔)
     stdin_open: true
     tty: true

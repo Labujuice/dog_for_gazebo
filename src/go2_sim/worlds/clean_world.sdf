@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <sdf version="1.8">
-  <world name="clean_world">
+  <world name="default">
     <!-- 物理引擎：500Hz ODE -->
     <physics name="500hz" type="ode">
       <max_step_size>0.002</max_step_size>
@@ -28,6 +28,9 @@
       <render_engine>ogre2</render_engine>
     </plugin>
     <plugin filename="gz-sim-contact-system" name="gz::sim::systems::Contact"/>
+    <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu"/>
+    <plugin filename="gz-sim-forcetorque-system" name="gz::sim::systems::ForceTorque"/>
+    <plugin filename="gz-sim-apply-link-wrench-system" name="gz::sim::systems::ApplyLinkWrench"/>
 
     <!-- 場景 -->
     <scene>

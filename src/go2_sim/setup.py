@@ -25,6 +25,7 @@ setup(
     entry_points={
         'console_scripts': [
             'teleop_mapper = go2_sim.teleop_mapper:main',
+            'keyboard_teleop = go2_sim.keyboard_teleop:main',
         ],
     },
 )
