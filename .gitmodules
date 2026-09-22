@@ -1,4 +1,4 @@
 [submodule "src/quad-sdk"]
 	path = src/quad-sdk
-	url = https://github.com/robomechanics/quad-sdk.git
-	branch = devel_ros2
+	url = https://github.com/Labujuice/quad-sdk.git
+	branch = 0922_test
