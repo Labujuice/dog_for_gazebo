@@ -121,6 +121,6 @@ go2-quadruped-control/
 
 ## 🔗 整合介面
 
-詳細介面定義請參閱 [docs/INTEGRATION.md](file:///home/kenny/Git_KennySpace/dog_for_gazebo/docs/INTEGRATION.md)。
+詳細介面定義請參閱 [docs/INTEGRATION.md](docs/INTEGRATION.md)。
 - 輸入：`/cmd_vel`, `/go2/fsm_cmd`, `/go2/posture_cmd`
 - 輸出：`/odom`, `/imu`, `/joint_states`, `/go2/fsm_state`, `/go2/telemetry`

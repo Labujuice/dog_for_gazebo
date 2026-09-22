@@ -79,7 +79,7 @@
 
 2. **終端機 2：啟動 Go2 控制堆疊**
    ```bash
-   cd ~/Git_KennySpace/dog_for_gazebo
+   cd path/to/dog_for_gazebo  # 或切換至您的專案目錄
    ./run.sh teleop
    ```
 
