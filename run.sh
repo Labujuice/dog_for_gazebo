@@ -84,9 +84,9 @@ function run_start() {
         "$IMAGE_NAME" \
         bash -c "source /opt/ros/jazzy/setup.bash && \
                  if [ -f install/setup.bash ]; then source install/setup.bash; fi && \
-                 if [ -f src/setup_env.sh ]; then source src/setup_env.sh; fi && \
+                 if [ -f /ros2_ws/src/setup_env.sh ]; then source /ros2_ws/src/setup_env.sh; fi && \
                  echo '=== 正在背景啟動 Gazebo Harmonic 與 Go2 NMPC 控制堆疊 (日誌輸出至 log/sim.log) ===' && \
-                 ros2 launch go2_sim go2_clean.launch.py > log/sim.log 2>&1 & \
+                 ros2 launch go2_sim go2_clean.launch.py > /ros2_ws/log/sim.log 2>&1 & \
                  SIM_PID=\$! && \
                  trap 'echo \"Shutting down...\"; kill \$SIM_PID 2>/dev/null; exit 0' INT TERM EXIT && \
                  echo '=== 正在等待 Gazebo 啟動並載入 Go2 機器人控制器... ===' && \
@@ -97,7 +97,7 @@ function run_start() {
                      fi; \
                      sleep 1; \
                  done && \
-                 ros2 run go2_sim keyboard_teleop || python3 src/go2_sim/go2_sim/keyboard_teleop.py"
+                 ros2 run go2_sim keyboard_teleop || python3 /ros2_ws/src/go2_sim/go2_sim/keyboard_teleop.py"
 }
 
 function run_sim() {
@@ -125,7 +125,7 @@ function run_sim() {
         "$IMAGE_NAME" \
         bash -c "source /opt/ros/jazzy/setup.bash && \
                  if [ -f install/setup.bash ]; then source install/setup.bash; fi && \
-                 if [ -f src/setup_env.sh ]; then source src/setup_env.sh; fi && \
+                 if [ -f /ros2_ws/src/setup_env.sh ]; then source /ros2_ws/src/setup_env.sh; fi && \
                  ros2 launch go2_sim go2_clean.launch.py"
 }
 
@@ -154,7 +154,7 @@ function run_teleop() {
         "$IMAGE_NAME" \
         bash -c "source /opt/ros/jazzy/setup.bash && \
                  if [ -f install/setup.bash ]; then source install/setup.bash; fi && \
-                 if [ -f src/setup_env.sh ]; then source src/setup_env.sh; fi && \
+                 if [ -f /ros2_ws/src/setup_env.sh ]; then source /ros2_ws/src/setup_env.sh; fi && \
                  ros2 launch go2_sim go2_teleop.launch.py"
 }
 
@@ -172,8 +172,8 @@ function run_keyboard() {
         "$IMAGE_NAME" \
         bash -c "source /opt/ros/jazzy/setup.bash && \
                  if [ -f install/setup.bash ]; then source install/setup.bash; fi && \
-                 if [ -f src/setup_env.sh ]; then source src/setup_env.sh; fi && \
-                 ros2 run go2_sim keyboard_teleop || python3 src/go2_sim/go2_sim/keyboard_teleop.py"
+                 if [ -f /ros2_ws/src/setup_env.sh ]; then source /ros2_ws/src/setup_env.sh; fi && \
+                 ros2 run go2_sim keyboard_teleop || python3 /ros2_ws/src/go2_sim/go2_sim/keyboard_teleop.py"
 }
 
 function run_bash() {
@@ -197,7 +197,7 @@ function run_bash() {
         "$IMAGE_NAME" \
         bash -c "source /opt/ros/jazzy/setup.bash && \
                  if [ -f install/setup.bash ]; then source install/setup.bash; fi && \
-                 if [ -f src/setup_env.sh ]; then source src/setup_env.sh; fi && \
+                 if [ -f /ros2_ws/src/setup_env.sh ]; then source /ros2_ws/src/setup_env.sh; fi && \
                  bash"
 }
 
@@ -217,7 +217,7 @@ function run_test() {
         "$IMAGE_NAME" \
         bash -c "source /opt/ros/jazzy/setup.bash && \
                  if [ -f install/setup.bash ]; then source install/setup.bash; fi && \
-                 python3 src/go2_sim/test/test_go2_behaviors.py"
+                 python3 /ros2_ws/src/go2_sim/test/test_go2_behaviors.py"
 }
 
 ACTION="${1:-start}"
