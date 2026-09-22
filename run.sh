@@ -66,6 +66,9 @@ function run_start() {
         --network host \
         --ipc host \
         --privileged \
+        --device /dev/dri:/dev/dri \
+        -v /dev/dri:/dev/dri \
+        -e LIBGL_ALWAYS_SOFTWARE=0 \
         -e DISPLAY="${DISPLAY:-:0}" \
         -e QT_X11_NO_MITSHM=1 \
         -e NVIDIA_VISIBLE_DEVICES=all \
@@ -86,9 +89,15 @@ function run_start() {
                  ros2 launch go2_sim go2_clean.launch.py > /ros2_ws/log/sim.log 2>&1 & \
                  SIM_PID=\$! && \
                  trap 'echo \"Shutting down...\"; kill \$SIM_PID 2>/dev/null; exit 0' INT TERM EXIT && \
-                 echo '=== 等待 Gazebo 載入機器人模型與控制器 (約 8 秒)... ===' && \
-                 sleep 8 && \
-                 ros2 run go2_sim keyboard_teleop"
+                 echo '=== 正在等待 Gazebo 啟動並載入 Go2 機器人控制器... ===' && \
+                 for i in \$(seq 1 60); do \
+                     if ros2 topic list 2>/dev/null | grep -q '/robot_1/joint_states'; then \
+                         echo '=== Go2 控制器已就緒！正在啟動控制儀表板 ===' && \
+                         break; \
+                     fi; \
+                     sleep 1; \
+                 done && \
+                 ros2 run go2_sim keyboard_teleop || python3 /ros2_ws/src/go2_sim/go2_sim/keyboard_teleop.py"
 }
 
 function run_sim() {
@@ -98,6 +107,9 @@ function run_sim() {
         --network host \
         --ipc host \
         --privileged \
+        --device /dev/dri:/dev/dri \
+        -v /dev/dri:/dev/dri \
+        -e LIBGL_ALWAYS_SOFTWARE=0 \
         -e DISPLAY="${DISPLAY:-:0}" \
         -e QT_X11_NO_MITSHM=1 \
         -e NVIDIA_VISIBLE_DEVICES=all \
@@ -124,6 +136,9 @@ function run_teleop() {
         --network host \
         --ipc host \
         --privileged \
+        --device /dev/dri:/dev/dri \
+        -v /dev/dri:/dev/dri \
+        -e LIBGL_ALWAYS_SOFTWARE=0 \
         -e DISPLAY="${DISPLAY:-:0}" \
         -e QT_X11_NO_MITSHM=1 \
         -e NVIDIA_VISIBLE_DEVICES=all \
@@ -158,7 +173,7 @@ function run_keyboard() {
         bash -c "source /opt/ros/jazzy/setup.bash && \
                  if [ -f install/setup.bash ]; then source install/setup.bash; fi && \
                  if [ -f /ros2_ws/src/setup_env.sh ]; then source /ros2_ws/src/setup_env.sh; fi && \
-                 ros2 run go2_sim keyboard_teleop"
+                 ros2 run go2_sim keyboard_teleop || python3 /ros2_ws/src/go2_sim/go2_sim/keyboard_teleop.py"
 }
 
 function run_bash() {

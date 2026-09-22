@@ -75,17 +75,21 @@ class TeleopMapperNode(Node):
 
         # FSM State variables
         # States: "SIT", "STAND_UP", "STAND", "WALK", "SIT_DOWN", "JUMP", "FALLEN", "RECOVERY_STAND", "ESTOP"
-        self.fsm_state = "STAND"
+        self.fsm_state = "SIT"
         self.target_height = 0.28   # Nominal height (0.15 ~ 0.38m)
         self.target_roll = 0.0      # rad
         self.target_pitch = 0.0     # rad
 
-        # Previous button states for edge detection
-        self.prev_buttons = []
+        # Timers for state transitions
+        self.stand_start_time = 0.0
+        self.sit_start_time = 0.0
         self.jump_step = 0
         self.jump_start_time = 0.0
         self.recovery_step = 0
         self.recovery_start_time = 0.0
+
+        # Previous button states for edge detection
+        self.prev_buttons = []
 
         # Latest IMU for fall detection
         self.latest_roll = 0.0
@@ -96,12 +100,8 @@ class TeleopMapperNode(Node):
             UInt8, f'/{self.robot_ns}/control/mode', 10)
         self.cmd_vel_pub = self.create_publisher(
             Twist, f'/{self.robot_ns}/cmd_vel', 10)
-        self.global_cmd_vel_pub = self.create_publisher(
-            Twist, '/cmd_vel', 10)
         self.fsm_state_pub = self.create_publisher(
             String, '/go2/fsm_state', 10)
-        self.fsm_cmd_pub = self.create_publisher(
-            String, '/go2/fsm_cmd', 10)
         self.posture_cmd_pub = self.create_publisher(
             Twist, '/go2/posture_cmd', 10)
         self.telemetry_pub = self.create_publisher(
@@ -132,7 +132,17 @@ class TeleopMapperNode(Node):
 
         # Timer for FSM state machine updates & telemetry (50 Hz)
         self.timer = self.create_timer(0.02, self.fsm_timer_callback)
+        # Auto-standup timer: automatically stand up 10s after node start once controllers are ready
+        self.auto_stand_timer = self.create_timer(10.0, self.auto_stand_callback)
         self.get_logger().info('TeleopMapperNode started for namespace: %s' % self.robot_ns)
+
+    def auto_stand_callback(self):
+        if self.auto_stand_timer is not None:
+            self.auto_stand_timer.cancel()
+            self.auto_stand_timer = None
+        if self.fsm_state == "SIT":
+            self.get_logger().info("Simulation initialized. Auto-triggering STAND_UP...")
+            self.execute_command("STAND_UP")
 
     def is_button_pressed(self, buttons, index):
         """Check if button transitioned from unpressed (0) to pressed (1)."""
@@ -218,13 +228,8 @@ class TeleopMapperNode(Node):
 
     def execute_command(self, cmd_str: str):
         """Execute FSM transition commands."""
-        cmd_str = cmd_str.upper()
+        cmd_str = cmd_str.upper().strip()
         self.get_logger().info(f"FSM Command Received: {cmd_str}")
-
-        # Publish FSM command feedback
-        msg = String()
-        msg.data = cmd_str
-        self.fsm_cmd_pub.publish(msg)
 
         if cmd_str == "ESTOP":
             self.fsm_state = "ESTOP"
@@ -237,19 +242,24 @@ class TeleopMapperNode(Node):
 
         elif cmd_str == "STAND_UP":
             self.fsm_state = "STAND_UP"
+            self.stand_start_time = time.time()
             mode_msg = UInt8()
             mode_msg.data = 1  # READY
             self.control_mode_pub.publish(mode_msg)
 
         elif cmd_str == "SIT_DOWN":
             self.fsm_state = "SIT_DOWN"
+            self.sit_start_time = time.time()
             mode_msg = UInt8()
             mode_msg.data = 0  # SIT
             self.control_mode_pub.publish(mode_msg)
             self.cmd_vel_pub.publish(Twist())
 
-        elif cmd_str == "BALANCE":
+        elif cmd_str in ["BALANCE", "STAND"]:
             self.fsm_state = "STAND"
+            mode_msg = UInt8()
+            mode_msg.data = 1  # READY
+            self.control_mode_pub.publish(mode_msg)
             self.cmd_vel_pub.publish(Twist())
 
         elif cmd_str == "JUMP":
@@ -265,10 +275,20 @@ class TeleopMapperNode(Node):
 
     def external_cmd_vel_callback(self, msg: Twist):
         """Forward external /cmd_vel to robot namespace when in operational state."""
+        is_moving = abs(msg.linear.x) > 0.01 or abs(msg.linear.y) > 0.01 or abs(msg.angular.z) > 0.01
+
+        # Auto-standup if motion is commanded while sitting
+        if self.fsm_state in ["SIT", "SIT_DOWN"] and is_moving:
+            self.get_logger().info("Motion commanded while sitting. Auto-triggering STAND_UP...")
+            self.execute_command("STAND_UP")
+            return
+
         if self.fsm_state in ["STAND", "WALK"]:
             self.cmd_vel_pub.publish(msg)
-            if abs(msg.linear.x) > 0.01 or abs(msg.linear.y) > 0.01 or abs(msg.angular.z) > 0.01:
+            if is_moving:
                 self.fsm_state = "WALK"
+            else:
+                self.fsm_state = "STAND"
 
     def external_fsm_cmd_callback(self, msg: String):
         """Handle external FSM commands."""
@@ -297,10 +317,9 @@ class TeleopMapperNode(Node):
         else:
             self.latest_pitch = math.asin(sinp)
 
-        # Check for fall (> 50 deg ~ 0.87 rad)
+        # Check for fall (> 50 deg ~ 0.87 rad) only when in active standing/walking modes
         fall_thresh = 50.0 * math.pi / 180.0
-        if (abs(self.latest_roll) > fall_thresh or abs(self.latest_pitch) > fall_thresh) and \
-           self.fsm_state not in ["FALLEN", "RECOVERY_STAND", "ESTOP"]:
+        if self.fsm_state in ["STAND", "WALK"] and (abs(self.latest_roll) > fall_thresh or abs(self.latest_pitch) > fall_thresh):
             self.get_logger().warn(
                 f"FALL DETECTED! Roll: {math.degrees(self.latest_roll):.1f}°, "
                 f"Pitch: {math.degrees(self.latest_pitch):.1f}°")
@@ -324,8 +343,20 @@ class TeleopMapperNode(Node):
         """Periodic FSM state maintenance, behavior sequencing, and telemetry publication."""
         now = time.time()
 
+        # Handle STAND_UP transition (robot_driver takes ~1.0s to interpolate)
+        if self.fsm_state == "STAND_UP":
+            if now - self.stand_start_time > 1.5:
+                self.fsm_state = "STAND"
+                self.get_logger().info("STAND_UP completed successfully. Robot is now in STAND mode.")
+
+        # Handle SIT_DOWN transition
+        elif self.fsm_state == "SIT_DOWN":
+            if now - self.sit_start_time > 1.5:
+                self.fsm_state = "SIT"
+                self.get_logger().info("SIT_DOWN completed successfully. Robot is now in SIT mode.")
+
         # Handle JUMP 4-phase sequence
-        if self.fsm_state == "JUMP":
+        elif self.fsm_state == "JUMP":
             elapsed = now - self.jump_start_time
             if self.jump_step == 0:
                 # Phase 1: Crouch (0.3s)

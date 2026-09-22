@@ -49,7 +49,7 @@ class KeyboardTeleopNode(Node):
             Imu, '/imu', self.imu_cb, 10)
 
         # State variables
-        self.current_fsm_state = "STAND"
+        self.current_fsm_state = "SIT"
         self.target_vx = 0.0
         self.target_vy = 0.0
         self.target_wz = 0.0
@@ -75,8 +75,16 @@ class KeyboardTeleopNode(Node):
         self.pub_timer = self.create_timer(0.05, self.publish_velocity)
         # Timer for updating screen dashboard at 10 Hz
         self.ui_timer = self.create_timer(0.1, self.render_dashboard)
+        # One-shot timer to ensure robot stands up upon teleop start
+        self.init_stand_timer = self.create_timer(1.0, self.initial_standup)
 
         self.get_logger().info("Keyboard Teleop Node Initialized.")
+
+    def initial_standup(self):
+        if self.init_stand_timer is not None:
+            self.init_stand_timer.cancel()
+            self.init_stand_timer = None
+        self.send_fsm("STAND_UP", quad_mode=1)
 
     def fsm_state_cb(self, msg: String):
         self.current_fsm_state = msg.data
@@ -156,6 +164,11 @@ class KeyboardTeleopNode(Node):
 
     def process_key(self, key):
         """Handle key press events."""
+        # If moving and currently sitting, ensure we trigger stand up
+        if key in ['w', 'W', 's', 'S', 'a', 'A', 'd', 'D', 'q', 'Q', 'e', 'E']:
+            if self.current_fsm_state in ["SIT", "SIT_DOWN"]:
+                self.send_fsm("STAND_UP", quad_mode=1)
+
         if key in ['w', 'W']:
             self.target_vx = min(0.6, self.target_vx + self.vx_step)
         elif key in ['s', 'S']:
@@ -172,7 +185,7 @@ class KeyboardTeleopNode(Node):
             self.target_vx = 0.0
             self.target_vy = 0.0
             self.target_wz = 0.0
-            self.send_fsm("BALANCE")
+            self.send_fsm("BALANCE", quad_mode=1)
         elif key in ['x', 'X']:
             self.send_fsm("STAND_UP", quad_mode=1)
         elif key in ['c', 'C']:
@@ -184,7 +197,7 @@ class KeyboardTeleopNode(Node):
             self.target_vx = 0.0
             self.target_vy = 0.0
             self.target_wz = 0.0
-            self.send_fsm("BALANCE")
+            self.send_fsm("BALANCE", quad_mode=1)
         elif key in ['j', 'J']:
             self.send_fsm("JUMP")
         elif key in ['p', 'P', '\x1b']:  # P or ESC

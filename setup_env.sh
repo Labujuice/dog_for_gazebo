@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 
+# 確保 go2_sim 與工作空間套件路徑
+if [ -d "/ros2_ws/install/go2_sim" ]; then
+    export AMENT_PREFIX_PATH="/ros2_ws/install/go2_sim:${AMENT_PREFIX_PATH}"
+fi
+if [ -d "/ros2_ws/src/go2_sim" ]; then
+    export PYTHONPATH="/ros2_ws/src/go2_sim:${PYTHONPATH}"
+fi
+
 # 設定 Gazebo Harmonic 模型與世界路徑
 export GZ_SIM_RESOURCE_PATH="${GZ_SIM_RESOURCE_PATH:-/opt/ros/jazzy/share}:\
 /ros2_ws/install/quad_sim_scripts/share/quad_sim_scripts/models:\
